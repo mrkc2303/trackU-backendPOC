@@ -9,13 +9,10 @@ app.use(express.json());
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(
-      "mongodb+srv://kanishkchhabra23:buWhWbm1MRktFauy@test-1.oapsky5.mongodb.net/?retryWrites=true&w=majority&appName=TEST-1",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+    const conn = await mongoose.connect("", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log(`Mongo db connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(error);
