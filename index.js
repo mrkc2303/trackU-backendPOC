@@ -1,15 +1,18 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const cors = require("cors");
-const { v4: uuidv4 } = require('uuid');
-
+const { v4: uuidv4 } = require("uuid");
+const { default: axios } = require("axios");
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect("mongodb+srv://kanishkchhabra23:buWhWbm1MRktFauy@test-1.oapsky5.mongodb.net/?retryWrites=true&w=majority&appName=TEST-1", {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const conn = await mongoose.connect(
+      "mongodb+srv://kanishkchhabra23:buWhWbm1MRktFauy@test-1.oapsky5.mongodb.net/?retryWrites=true&w=majority&appName=TEST-1",
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    );
     console.log(`Mongo db connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(error);
@@ -30,20 +33,20 @@ const userSchema = new mongoose.Schema(
     },
     apiKey: {
       required: true,
-      type: String
+      type: String,
     },
     email: {
       required: true,
-      type: String
+      type: String,
     },
     phone: {
       required: true,
-      type: String
+      type: String,
     },
     country: {
       required: true,
-      type: String
-    }
+      type: String,
+    },
   },
   {
     timestamps: true,
@@ -72,7 +75,7 @@ const projectSchema = new mongoose.Schema(
     estimatedUsers: {
       type: String,
       required: true,
-    }
+    },
   },
   {
     timestamps: true,
@@ -127,8 +130,8 @@ const main = async () => {
       walletAddress: req.body.walletAddress,
       apiKey: uuidv4(),
       email: req.body.email,
-      phone: req.body.phone, 
-      country: req.body.country
+      phone: req.body.phone,
+      country: req.body.country,
     });
 
     try {
@@ -155,32 +158,32 @@ const main = async () => {
 
   router.post("/addProject", async (req, res) => {
     const { walletAddress, projectName, estimatedUsers } = req.body;
-  
+
     try {
       const user = await User.findOne({ walletAddress: walletAddress });
       if (!user) {
         return res.status(404).json({ message: "Owner not registered" });
       }
-  
+
       console.log("Inside Add Project - User Found: ", user);
-  
+
       const project = new Project({
         owner: user._id,
         walletAddress: walletAddress,
         projectName: projectName,
         estimatedUsers: estimatedUsers,
-        trigger: []
+        trigger: [],
       });
-  
+
       console.log("Inside Add Project - Project to Save: ", project);
-  
+
       const savedProject = await project.save();
-  
+
       console.log("Inside Add Project - Saved Project: ", savedProject);
-  
+
       user.projects.push(savedProject._id);
       await user.save();
-  
+
       res.status(200).json(savedProject);
     } catch (error) {
       console.error("Error inside Add Project:", error);
@@ -220,24 +223,24 @@ const main = async () => {
   });
 
   // New route to get projects by user
-  router.get('/getProjectsByUser', async (req, res) => {
+  router.get("/getProjectsByUser", async (req, res) => {
     const { walletAddress } = req.query;
 
-    console.log("Inside Get Projects By User: ", walletAddress)
+    console.log("Inside Get Projects By User: ", walletAddress);
 
     try {
-        const user = await User.findOne({ walletAddress }).populate('projects');
-        console.log(user)
+      const user = await User.findOne({ walletAddress }).populate("projects");
+      console.log(user);
 
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-        console.log(user.projects)
+      console.log(user.projects);
 
-        res.status(200).json(user.projects);
+      res.status(200).json(user.projects);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -271,10 +274,6 @@ const main = async () => {
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
-  });
-
-  router.get("/", async (req, res) => {
-    res.send("Hello world");
   });
 
   app.use("/", router);
