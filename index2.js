@@ -5,8 +5,8 @@ const { v4: uuidv4 } = require("uuid");
 const { default: axios } = require("axios");
 
 const main = async () => {
-  const BASE_URL = "";
-  const API_KEY = "";
+  const BASE_URL = "https://ap-south-1.aws.data.mongodb-api.com/app/data-zpawudj/endpoint/data/v1";
+  const API_KEY = "CGZhyqhav7fV563WKHepfZziJTEKbXvwws8WLgPasK3Gk0IDeUMzwrmFkgyhvdfl";
   const app = express();
   const port = 5050;
 
@@ -131,17 +131,19 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataProject,
+        data: dataProject,
       };
 
       let projectCreated = await axios(configProject);
+
+      console.log("DATAA", projectCreated)
 
       //////////////
       let dataProjectFetched = JSON.stringify({
         dataSource: "TEST-1",
         database: "test",
         collection: "projects",
-        filter: { _id: { $oid: projectCreated.insertedId } },
+        filter: { _id: { $oid: projectCreated.data.insertedId } },
       });
 
       let configProjectFetched = {
@@ -152,7 +154,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataProjectFetched,
+        data: dataProjectFetched,
       };
       let projectFetched = await axios(configProjectFetched);
       ///////////////
@@ -177,7 +179,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataUserUpdated,
+        data: dataUserUpdated,
       };
 
       let userUpdated = await axios(configUserUpdated);
@@ -208,7 +210,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataUser,
+        data: dataUser,
       };
 
       let dataProject = JSON.stringify({
@@ -226,7 +228,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataProject,
+        data: dataProject,
       };
       let user = await axios(configUser);
       if (!user) {
@@ -263,7 +265,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataProjectDeleted,
+        data: dataProjectDeleted,
       };
 
       let deletedProject = await axios(configProjectDeleted);
@@ -292,7 +294,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataUserUpdate,
+        data: dataUserUpdate,
       };
 
       let updatedUser = await axios(configUserUpdate);
@@ -325,7 +327,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataUser,
+        data: dataUser,
       };
 
       let userResponse = await axios(configUser);
@@ -356,7 +358,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataProjects,
+        data: dataProjects,
       };
 
       const projectsResponse = axios(configProjects);
@@ -410,7 +412,7 @@ const main = async () => {
           "Access-Control-Request-Headers": "*",
           apiKey: API_KEY,
         },
-        dataEvents,
+        data: dataEvents,
       };
 
       const eventsResponse = axios(configEvents);
