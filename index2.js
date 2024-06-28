@@ -136,7 +136,7 @@ const main = async () => {
 
       let projectCreated = await axios(configProject);
 
-      console.log("DATAA", projectCreated)
+      console.log("DATAA", projectCreated);
 
       //////////////
       let dataProjectFetched = JSON.stringify({
@@ -476,6 +476,339 @@ const main = async () => {
     } catch (error) {
       console.log(error);
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  const fetchData = async (filter) => {
+    try {
+      console.log(filter);
+      let data = JSON.stringify({
+        dataSource: "TEST-1",
+        database: "test",
+        collection: "events",
+        filter: filter,
+      });
+
+      let config = {
+        method: "post",
+        url: `${BASE_URL}/action/find`,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Request-Headers": "*",
+          apiKey: API_KEY,
+        },
+        data,
+      };
+
+      let response = await axios(config);
+      // console.log(response.data);
+
+      return response.data.documents;
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      throw error;
+    }
+  };
+
+  router.get("/getProjectDetails", async (req, res) => {
+    try {
+      const [
+        pageViewData,
+        sessionData,
+        heatMapData,
+        errorTrackData,
+        performanceData,
+      ] = await Promise.all([
+        fetchData({ event: "page_view" }),
+        fetchData({ event: "session_end" }),
+        fetchData({ event: "heat_map" }),
+        fetchData({ event: "error_track" }),
+        fetchData({ event: "performance_track" }),
+      ]);
+
+      console.log(
+        pageViewData,
+        sessionData,
+        heatMapData,
+        errorTrackData,
+        performanceData
+      );
+
+      const totalPageViews = pageViewData.length;
+      const uniquePageViews = new Set(pageViewData.map((view) => view.userId))
+        .size;
+
+      const urlPageViewCounts = {};
+      const urlUserCounts = {};
+      pageViewData.forEach((view) => {
+        const url = view.data.url;
+        const userId = view.userId;
+        if (urlPageViewCounts[url]) {
+          urlPageViewCounts[url].views++;
+          urlUserCounts[url].add(userId);
+        } else {
+          urlPageViewCounts[url] = { views: 1, uniqueViews: 0 };
+          urlUserCounts[url] = new Set([userId]);
+        }
+      });
+
+      for (const url in urlUserCounts) {
+        urlPageViewCounts[url].uniqueViews = urlUserCounts[url].size;
+      }
+
+      const urlPageViewArray = Object.entries(urlPageViewCounts).map(
+        ([link, data]) => ({
+          link,
+          views: data.views,
+          uniqueViews: data.uniqueViews,
+        })
+      );
+
+      const pageViewsPerDayCounts = {};
+      pageViewData.forEach((view) => {
+        const date = new Date(view.date).toISOString().split("T")[0];
+        if (pageViewsPerDayCounts[date]) {
+          pageViewsPerDayCounts[date]++;
+        } else {
+          pageViewsPerDayCounts[date] = 1;
+        }
+      });
+
+      const pageViewsPerDay = Object.entries(pageViewsPerDayCounts)
+        .map(([date, views]) => ({ date, views }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const averagePageViewsPerUser = totalPageViews / uniquePageViews;
+
+      const mostViewedPages = urlPageViewArray.sort(
+        (a, b) => b.views - a.views
+      );
+
+      const userPageViewCounts = {};
+      pageViewData.forEach((view) => {
+        const userId = view.userId;
+        if (userPageViewCounts[userId]) {
+          userPageViewCounts[userId]++;
+        } else {
+          userPageViewCounts[userId] = 1;
+        }
+      });
+
+      const uniqueUsers = Object.entries(userPageViewCounts).map(
+        ([userId, count]) => ({ userId, count })
+      );
+
+      const now = new Date();
+      const oneDayAgo = new Date(now);
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      let totalPageStayDuration = 0;
+      let last24HoursPageStayDuration = 0;
+      let last7DaysPageStayDuration = 0;
+
+      sessionData.forEach((session) => {
+        const duration = session.data.duration || 0;
+        totalPageStayDuration += duration;
+
+        const sessionDate = new Date(session.date);
+        if (sessionDate >= oneDayAgo) {
+          last24HoursPageStayDuration += duration;
+        }
+        if (sessionDate >= sevenDaysAgo) {
+          last7DaysPageStayDuration += duration;
+        }
+      });
+
+      const averageStayDurationPerUser =
+        totalPageStayDuration / uniquePageViews;
+
+      const userSessionDurations = {};
+      sessionData.forEach((session) => {
+        const userId = session.userId;
+        const duration = session.data.duration || 0;
+        if (userSessionDurations[userId]) {
+          userSessionDurations[userId] += duration;
+        } else {
+          userSessionDurations[userId] = duration;
+        }
+      });
+
+      uniqueUsers.forEach((user) => {
+        const userId = user.userId;
+        user.stayDuration = userSessionDurations[userId] || 0;
+
+        const userPageViewsLast24Hours = pageViewData.filter(
+          (view) => view.userId === userId && new Date(view.date) >= oneDayAgo
+        ).length;
+
+        const userPageViewsLast7Days = pageViewData.filter(
+          (view) =>
+            view.userId === userId && new Date(view.date) >= sevenDaysAgo
+        ).length;
+
+        user.pageViewsLast24Hours = userPageViewsLast24Hours;
+        user.pageViewsLast7Days = userPageViewsLast7Days;
+      });
+
+      const sessionDataPerDayCounts = {};
+      sessionData.forEach((session) => {
+        const date = new Date(session.date).toISOString().split("T")[0];
+        if (sessionDataPerDayCounts[date]) {
+          sessionDataPerDayCounts[date] += session.data.duration || 0;
+        } else {
+          sessionDataPerDayCounts[date] = session.data.duration || 0;
+        }
+      });
+
+      const sessionDataPerDay = Object.entries(sessionDataPerDayCounts)
+        .map(([date, duration]) => ({ date, duration }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      let totalClicks = [];
+      let totalScrolls = [];
+      heatMapData.forEach((heatMap) => {
+        totalClicks = totalClicks.concat(heatMap.data.clicks || []);
+        totalScrolls = totalScrolls.concat(heatMap.data.scrolls || []);
+      });
+
+      const totalInteractions = { clicks: totalClicks, scrolls: totalScrolls };
+
+      const userInteractions = {};
+      heatMapData.forEach((heatMap) => {
+        const userId = heatMap.userId;
+        const clicks = heatMap.data.clicks || [];
+        const scrolls = heatMap.data.scrolls || [];
+
+        if (!userInteractions[userId]) {
+          userInteractions[userId] = { clicks: [], scrolls: [] };
+        }
+
+        userInteractions[userId].clicks =
+          userInteractions[userId].clicks.concat(clicks);
+        userInteractions[userId].scrolls =
+          userInteractions[userId].scrolls.concat(scrolls);
+      });
+
+      uniqueUsers.forEach((user) => {
+        const userId = user.userId;
+        user.clicks = userInteractions[userId]?.clicks || [];
+        user.scrolls = userInteractions[userId]?.scrolls || [];
+      });
+
+      const userErrorCounts = {};
+      errorTrackData.forEach((error) => {
+        const userId = error.userId;
+        if (userErrorCounts[userId]) {
+          userErrorCounts[userId]++;
+        } else {
+          userErrorCounts[userId] = 1;
+        }
+      });
+
+      uniqueUsers.forEach((user) => {
+        const userId = user.userId;
+        user.errors = userErrorCounts[userId] || 0;
+      });
+
+      const errorsFacedByUser = errorTrackData.length;
+
+      // Performance data analysis
+      let totalLoadTime = 0;
+      let loadTimes = [];
+      const screenWidthCounts = {};
+
+      performanceData.forEach((perf) => {
+        const loadTime = perf.data.performance.firstContentfulPaint || 0;
+        const screenWidth = perf.data.performance.width || 0;
+
+        loadTimes.push(loadTime);
+        totalLoadTime += loadTime;
+
+        if (screenWidthCounts[screenWidth]) {
+          screenWidthCounts[screenWidth]++;
+        } else {
+          screenWidthCounts[screenWidth] = 1;
+        }
+      });
+
+      const fastestLoadTime = Math.min(...loadTimes);
+      const slowestLoadTime = Math.max(...loadTimes);
+      const averageLoadTime = totalLoadTime / loadTimes.length;
+
+      const screenWidthArray = Object.entries(screenWidthCounts).map(
+        ([width, count]) => ({
+          width: parseInt(width),
+          count,
+        })
+      );
+
+      const userLoadTimes = {};
+      const userScreenWidths = {};
+
+      performanceData.forEach((perf) => {
+        const userId = perf.userId;
+        const loadTime = perf.data.performance.firstContentfulPaint || 0;
+        const screenWidth = perf.data.performance.width || 0;
+
+        if (!userLoadTimes[userId]) {
+          userLoadTimes[userId] = [];
+        }
+        if (!userScreenWidths[userId]) {
+          userScreenWidths[userId] = [];
+        }
+
+        userLoadTimes[userId].push(loadTime);
+        userScreenWidths[userId].push(screenWidth);
+      });
+
+      uniqueUsers.forEach((user) => {
+        const userId = user.userId;
+        const userTimes = userLoadTimes[userId] || [];
+        const userWidths = userScreenWidths[userId] || [];
+
+        const userFastestLoadTime = Math.min(...userTimes);
+        const userSlowestLoadTime = Math.max(...userTimes);
+        const userAverageLoadTime =
+          userTimes.reduce((sum, time) => sum + time, 0) / userTimes.length;
+        const userAverageScreenWidth =
+          userWidths.reduce((sum, width) => sum + width, 0) / userWidths.length;
+
+        user.fastestLoadTime = userFastestLoadTime;
+        user.slowestLoadTime = userSlowestLoadTime;
+        user.averageLoadTime = userAverageLoadTime;
+        user.averageScreenWidth = userAverageScreenWidth;
+        user.screenWidths = userWidths;
+      });
+
+      res.status(200).json({
+        totalPageViews,
+        uniquePageViews,
+        urlPageViewCounts: urlPageViewArray,
+        pageViewsPerDay,
+        averagePageViewsPerUser,
+        mostViewedPages,
+        uniqueUsers,
+        totalPageStayDuration,
+        last24HoursPageStayDuration,
+        last7DaysPageStayDuration,
+        averageStayDurationPerUser,
+        sessionDataPerDay,
+        totalInteractions,
+        pageViewData,
+        sessionData,
+        heatMapData,
+        errorTrackData,
+        errorsFacedByUser,
+        performanceData,
+        fastestLoadTime,
+        slowestLoadTime,
+        averageLoadTime,
+        screenWidthArray,
+      });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
     }
   });
 
