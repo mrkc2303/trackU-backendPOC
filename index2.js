@@ -19,8 +19,8 @@ const main = async () => {
   router.post("/registerUser", async (req, res) => {
     try {
       let data = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         document: {
           walletAddress: req.body.walletAddress,
@@ -53,8 +53,8 @@ const main = async () => {
     const { walletAddress } = req.query;
     try {
       let data = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         filter: { walletAddress: walletAddress },
       });
@@ -71,10 +71,9 @@ const main = async () => {
       };
 
       let foundUser = await axios(config);
-      res.status(200).json(foundUser.data);
 
       if (foundUser) {
-        res.status(200).json(user);
+        res.status(200).json(foundUser.data.document);
       } else {
         res.status(404).json({ message: "User not found" });
       }
@@ -88,8 +87,8 @@ const main = async () => {
 
     try {
       let data = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         filter: { walletAddress: walletAddress },
       });
@@ -109,14 +108,14 @@ const main = async () => {
       if (!user) {
         return res.status(404).json({ message: "Owner not registered" });
       }
-      console.log("Inside Add Project - User Found: ", user);
+      console.log("Inside Add Project - User Found: ", user.data.document);
 
       let dataProject = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "projects",
         document: {
-          owner: user.data._id,
+          owner: user.data.document._id,
           walletAddress: walletAddress,
           projectName: projectName,
           estimatedUsers: estimatedUsers,
@@ -136,17 +135,38 @@ const main = async () => {
       };
 
       let projectCreated = await axios(configProject);
+
+      //////////////
+      let dataProjectFetched = JSON.stringify({
+        dataSource: "TEST-1",
+        database: "test",
+        collection: "projects",
+        filter: { _id: { $oid: projectCreated.insertedId } },
+      });
+
+      let configProjectFetched = {
+        method: "post",
+        url: `${BASE_URL}/action/findOne`,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Request-Headers": "*",
+          apiKey: API_KEY,
+        },
+        dataProjectFetched,
+      };
+      let projectFetched = await axios(configProjectFetched);
+      ///////////////
       console.log(
         "Inside Add Project - Project to Save: ",
-        projectCreated.data
+        projectFetched.data.document
       );
 
       let dataUserUpdated = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         filter: { walletAddress: walletAddress },
-        update: { $push: { projects: projectCreated.data._id } },
+        update: { $push: { projects: projectFetched.data.document._id } },
       });
 
       let configUserUpdated = {
@@ -162,7 +182,7 @@ const main = async () => {
 
       let userUpdated = await axios(configUserUpdated);
 
-      res.status(200).json(projectCreated.data);
+      res.status(200).json(projectFetched.data.document);
     } catch (error) {
       console.error("Error inside Add Project:", error);
       res.status(400).json({ message: error.message });
@@ -174,8 +194,8 @@ const main = async () => {
 
     try {
       let dataUser = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         filter: { walletAddress: walletAddress },
       });
@@ -192,10 +212,10 @@ const main = async () => {
       };
 
       let dataProject = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "projects",
-        filter: { _id: projectId },
+        filter: { _id: { $oid: projectId } },
       });
 
       let configProject = {
@@ -219,17 +239,20 @@ const main = async () => {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      if (project.data.owner.toString() !== user.data._id.toString()) {
+      if (
+        project.data.document.owner.toString() !==
+        user.data.document._id.toString()
+      ) {
         return res
           .status(403)
           .json({ message: "User is not the owner of the project" });
       }
 
       let dataProjectDeleted = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "projects",
-        filter: { _id: projectId },
+        filter: { _id: { $oid: projectId } },
       });
 
       let configProjectDeleted = {
@@ -245,13 +268,13 @@ const main = async () => {
 
       let deletedProject = await axios(configProjectDeleted);
 
-      const filteredProjects = user.data.projects.filter(
+      const filteredProjects = user.data.document.projects.filter(
         (id) => id.toString() !== projectId
       );
 
       let dataUserUpdate = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         filter: { walletAddress: walletAddress },
         update: {
@@ -288,8 +311,8 @@ const main = async () => {
 
     try {
       let dataUser = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "users",
         filter: { walletAddress: walletAddress },
       });
@@ -319,8 +342,8 @@ const main = async () => {
       }));
 
       let dataProjects = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "projects",
         filter: { $or: projectIds },
       });
@@ -338,7 +361,7 @@ const main = async () => {
 
       const projectsResponse = axios(configProjects);
 
-      const projects = projectsResponse.data.documents;
+      const projects = projectsResponse.data.document;
 
       user.projects = projects;
 
@@ -367,8 +390,8 @@ const main = async () => {
     // save all the events in db
     try {
       let dataEvents = JSON.stringify({
-        dataSource: "Cluster0",
-        database: "track_u",
+        dataSource: "TEST-1",
+        database: "test",
         collection: "events",
         document: {
           apiKey: token,
@@ -392,7 +415,7 @@ const main = async () => {
 
       const eventsResponse = axios(configEvents);
 
-      res.status(200).json(eventsResponse.data);
+      res.status(200).json(eventsResponse.data.document);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -401,6 +424,57 @@ const main = async () => {
   // dummy mongodb api
   router.get("/", async (req, res) => {
     console.log("hello");
+    // res.send("hello world");
+    try {
+      //////////////////
+      let data = JSON.stringify({
+        dataSource: "TEST-1",
+        database: "test",
+        collection: "users",
+        // filter: { walletAddress: "0xDaD9D7C2f8395E0A0036526F46Cf2ba03BEA7a11" },
+        filter: { _id: { $oid: "667ce4747d67ce4bdb429fe8" } },
+      });
+
+      let config = {
+        method: "post",
+        url: `${BASE_URL}/action/findOne`,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Request-Headers": "*",
+          apiKey: API_KEY,
+        },
+        data,
+      };
+
+      let foundUser = await axios(config);
+      //////////////////
+      // let dataProjectFetched = JSON.stringify({
+      //   dataSource: "TEST-1",
+      //   database: "test",
+      //   collection: "users",
+      //   // filter: { _id: { $oid: "667c6532111255574b2d6c10" } },
+      //   filter: {
+      //     walletAddress: "0xDaD9D7C2f8395E0A0036526F46Cf2ba03BEA7a11",
+      //   },
+      // });
+
+      // let configProjectFetched = {
+      //   method: "post",
+      //   url: `${BASE_URL}/action/findOne`,
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     "Access-Control-Request-Headers": "*",
+      //     apiKey: API_KEY,
+      //   },
+      //   dataProjectFetched,
+      // };
+      // let projectFetched = await axios(configProjectFetched);
+      // console.log(projectFetched);
+      res.json(foundUser.data.document);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: error.message });
+    }
   });
 
   app.use("/", router);
