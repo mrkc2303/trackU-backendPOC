@@ -5,8 +5,8 @@ const { v4: uuidv4 } = require("uuid");
 const { default: axios } = require("axios");
 
 const main = async () => {
-  const BASE_URL = "https://ap-south-1.aws.data.mongodb-api.com/app/data-zpawudj/endpoint/data/v1";
-  const API_KEY = "CGZhyqhav7fV563WKHepfZziJTEKbXvwws8WLgPasK3Gk0IDeUMzwrmFkgyhvdfl";
+  const BASE_URL = "";
+  const API_KEY = "";
   const app = express();
   const port = 5050;
 
