@@ -5,8 +5,8 @@ const { v4: uuidv4 } = require("uuid");
 const { default: axios } = require("axios");
 
 const main = async () => {
-  const BASE_URL = "";
-  const API_KEY = "";
+  const BASE_URL = "https://ap-south-1.aws.data.mongodb-api.com/app/data-zpawudj/endpoint/data/v1";
+  const API_KEY = "CGZhyqhav7fV563WKHepfZziJTEKbXvwws8WLgPasK3Gk0IDeUMzwrmFkgyhvdfl";
   const app = express();
   const port = 5050;
 
@@ -332,6 +332,8 @@ const main = async () => {
 
       let userResponse = await axios(configUser);
 
+      // console.log(userResponse.data)
+
       const user = userResponse.data.document;
 
       if (!user) {
@@ -361,13 +363,15 @@ const main = async () => {
         data: dataProjects,
       };
 
-      const projectsResponse = axios(configProjects);
+      const projectsResponse = await axios(configProjects);
 
-      const projects = projectsResponse.data.document;
+      const projects = projectsResponse.data.documents;
+
+      // console.log(projects)
 
       user.projects = projects;
 
-      res.status(200).json(user);
+      res.status(200).json(projects);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -481,7 +485,7 @@ const main = async () => {
 
   const fetchData = async (filter) => {
     try {
-      console.log(filter);
+      // console.log(filter);
       let data = JSON.stringify({
         dataSource: "TEST-1",
         database: "test",
@@ -526,13 +530,13 @@ const main = async () => {
         fetchData({ event: "performance_track" }),
       ]);
 
-      console.log(
-        pageViewData,
-        sessionData,
-        heatMapData,
-        errorTrackData,
-        performanceData
-      );
+      // console.log(
+      //   pageViewData,
+      //   sessionData,
+      //   heatMapData,
+      //   errorTrackData,
+      //   performanceData
+      // );
 
       const totalPageViews = pageViewData.length;
       const uniquePageViews = new Set(pageViewData.map((view) => view.userId))
